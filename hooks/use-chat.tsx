@@ -1,11 +1,10 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
-import { v4 as uuidv4 } from "uuid"
-import { useLanguage } from "./use-language"
-import { useAuth } from "@/contexts/auth-context"
+import { useState, useCallback } from "react"
+import { useLanguage } from "@/contexts/language-context"
+import { useToast } from "@/components/ui/use-toast"
 
-export type Message = {
+export interface Message {
   id: string
   role: "user" | "assistant"
   content: string
@@ -21,103 +20,64 @@ export function useChat() {
   const [isLoading, setIsLoading] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const { language } = useLanguage()
-  const { user } = useAuth()
-
-  // Load conversation from localStorage or API when user changes
-  useEffect(() => {
-    const loadConversation = async () => {
-      // Clear messages when user changes (sign in or sign out)
-      setMessages([])
-      setConversationId(null)
-
-      if (!user) {
-        return
-      }
-
-      try {
-        // Try to get the most recent conversation for this user
-        const response = await fetch(`/api/conversation?userId=${user.id}&latest=true`)
-
-        if (response.ok) {
-          const data = await response.json()
-
-          if (data.conversation) {
-            setConversationId(data.conversation.id)
-            setMessages(data.conversation.messages || [])
-          }
-        }
-      } catch (error) {
-        console.error("Error loading conversation:", error)
-      }
-    }
-
-    loadConversation()
-  }, [user])
+  const { toast } = useToast()
 
   const sendMessage = useCallback(
-    async (content: string, detectedLanguage?: string) => {
+    async (content: string, language?: string, model?: string) => {
       setIsLoading(true)
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content,
+        metadata: { language },
+      }
+
+      setMessages((prev) => [...prev, userMessage])
 
       try {
-        // Add user message to the chat
-        const userMessage: Message = {
-          id: uuidv4(),
-          role: "user",
-          content,
-          metadata: {
-            language: detectedLanguage,
-            timestamp: Date.now(),
-          },
-        }
-
-        setMessages((prev) => [...prev, userMessage])
-
-        // Process with AI and get response
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            messages: [...messages, userMessage],
+            message: content,
             language,
+            model,
             conversationId,
-            userId: user?.id, // Only include userId if user is logged in
           }),
         })
 
         if (!response.ok) {
-          throw new Error("Failed to get AI response")
+          throw new Error("Failed to send message")
         }
 
         const data = await response.json()
-
-        // Save the conversation ID if it's new and user is logged in
-        if (user && data.conversationId && (!conversationId || conversationId !== data.conversationId)) {
-          setConversationId(data.conversationId)
-        }
-
-        // Add AI response to the chat
         const assistantMessage: Message = {
-          id: uuidv4(),
+          id: Date.now().toString(),
           role: "assistant",
-          content: data.response,
+          content: data.message,
           metadata: {
-            timestamp: Date.now(),
-            fallback: data.usedFallback,
+            language: data.language,
+            fallback: data.fallback,
           },
         }
 
         setMessages((prev) => [...prev, assistantMessage])
+        setConversationId(data.conversationId)
         return assistantMessage
       } catch (error) {
-        console.error("Error sending message:", error)
+        toast({
+          title: "Error",
+          description: "Failed to send message. Please try again.",
+          variant: "destructive",
+        })
         throw error
       } finally {
         setIsLoading(false)
       }
     },
-    [messages, language, conversationId, user],
+    [conversationId, toast],
   )
 
   const clearConversation = useCallback(() => {

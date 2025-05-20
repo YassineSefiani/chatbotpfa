@@ -2,13 +2,16 @@ import type React from "react"
 import "./globals.css"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { Providers } from "./providers"
+import { Toaster } from "@/components/ui/toaster"
+import { AuthProvider } from "@/contexts/auth-context"
+import { ModelProvider } from "@/contexts/model-context"
+import LanguageProvider from "@/contexts/language-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Intelligent Chatbot",
-  description: "An advanced AI chatbot with multilingual support and contextual understanding",
+  description: "A modern AI chatbot with multiple model support",
 }
 
 export default function RootLayout({
@@ -19,7 +22,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+        <AuthProvider>
+          <ModelProvider>
+            <LanguageProvider>
+              {children}
+              <Toaster />
+            </LanguageProvider>
+          </ModelProvider>
+        </AuthProvider>
       </body>
     </html>
   )

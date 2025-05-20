@@ -6,24 +6,24 @@ import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { useLanguage } from "@/hooks/use-language"
-
-const languages = [
-  { value: "en", label: "English" },
-  { value: "fr", label: "French" },
-  { value: "es", label: "Spanish" },
-  { value: "de", label: "German" },
-  { value: "it", label: "Italian" },
-  { value: "pt", label: "Portuguese" },
-  { value: "ru", label: "Russian" },
-  { value: "zh", label: "Chinese" },
-  { value: "ja", label: "Japanese" },
-  { value: "ar", label: "Arabic" },
-]
+import { useLanguage, type Language } from "@/contexts/language-context"
 
 export default function LanguageSelector() {
   const [open, setOpen] = useState(false)
-  const { language, setLanguage } = useLanguage()
+  const { language, setLanguage, t } = useLanguage()
+
+  const languages = [
+    { value: "en", label: t("language.en") },
+    { value: "fr", label: t("language.fr") },
+    { value: "es", label: t("language.es") },
+    { value: "de", label: t("language.de") },
+    { value: "it", label: t("language.it") },
+    { value: "pt", label: t("language.pt") },
+    { value: "ru", label: t("language.ru") },
+    { value: "zh", label: t("language.zh") },
+    { value: "ja", label: t("language.ja") },
+    { value: "ar", label: t("language.ar") },
+  ]
 
   const selectedLanguage = languages.find((l) => l.value === language) || languages[0]
 
@@ -38,16 +38,16 @@ export default function LanguageSelector() {
       </PopoverTrigger>
       <PopoverContent className="w-[180px] p-0">
         <Command>
-          <CommandInput placeholder="Search language..." />
+          <CommandInput placeholder={t("language.select")} />
           <CommandList>
-            <CommandEmpty>No language found.</CommandEmpty>
+            <CommandEmpty>{t("language.notfound")}</CommandEmpty>
             <CommandGroup>
               {languages.map((lang) => (
                 <CommandItem
                   key={lang.value}
                   value={lang.value}
                   onSelect={(currentValue) => {
-                    setLanguage(currentValue)
+                    setLanguage(currentValue as Language)
                     setOpen(false)
                   }}
                 >
